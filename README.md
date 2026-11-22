@@ -78,6 +78,12 @@ Details: [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md)
 
 ## More pictures
 
+The simulation drawn in 3-D (Gazebo): walls to scale, the rover with its sonar beams,
+the planned route (green), the driven trail (orange), start (blue) and goal (green).
+
+![Gazebo view](images/gazebo_twin_warehouse.png)
+
+
 | Simulator snapshot | Pure-pursuit baseline |
 |---|---|
 | ![sim](images/rover_sim_snapshot.png) | ![pp](images/route_astar_pp_seed4.png) |
