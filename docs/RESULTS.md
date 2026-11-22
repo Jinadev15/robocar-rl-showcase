@@ -91,3 +91,46 @@ It is not the rover's latency. The 0.14 s figure was measured in a single proces
 | SAC v2 (route following) -> v4 (mixed with whole missions), A* | 65% | 77% |
 | route DQN reward fix, at 25k steps | 23% | 35% |
 | route DQN final, 300 held-out worlds | | 93.7%, 1.22 x shortest |
+
+## 7. Round 2: denser worlds, moving obstacles, a tighter stop (2026-11-22, afternoon)
+
+The changes came from comparing the project with the most-starred GitHub projects
+that have the same objective (GAP_ANALYSIS.md, section 5).
+
+- New `clutter` worlds: 30-45 mixed obstacles on an open floor.
+- More boxes in warehouses and rooms.
+- Moving people and carts.
+- The rover now stops at 6 cm from the goal (estimated) instead of 12 cm.
+
+The rows below compare the same worlds and seeds before and after the change.
+Raw data: `results/eval_*_v4.json`.
+
+| Setting | A* + SAC (default) | A* + pure pursuit | RL route + SAC |
+|---|---|---|---|
+| 4 m arena + overhead camera (60) | 93% -> 93% | 90% -> 92% | - |
+| 4 m arena, onboard sensors (60) | 90% -> 92% | 90% -> 90% | - |
+| 4-8 m worlds, onboard sensors (100) | 75% -> **81%** | 68% -> 73% | 75% -> 79% |
+| clutter obstacle courses (60, new) | 85% -> **95%** | 83% -> 92% | 83% -> 87% |
+
+Nothing got worse.
+
+Moving obstacles were tested on the new default mix of maze, warehouse, rooms and
+clutter worlds: 60 missions, the same worlds with and without 2-5 movers walking
+at 0.15-0.4 m/s.
+
+| | A* + SAC | A* + pure pursuit |
+|---|---|---|
+| without movers | 83% (3.5 contacts) | 82% (6.5 contacts) |
+| with movers | 85% (5.2 contacts) | 87% (8.4 contacts) |
+
+The movers do not lower success. Per mission they cost 4 and gave 5-7, which is
+noise at 60 missions. They add about 2 light contacts per mission. The PWM policy
+was trained without movers, so no retraining was needed for this.
+
+The remaining failures, by cause:
+
+- **Large worlds:** timeouts and stuck missions in mazes, plus pose drift.
+- **Clutter worlds:** pose drift only ("arrived (estimate only)").
+
+Both point to localisation as the next limit. The overhead camera removes it
+inside its 4 m view.

@@ -70,3 +70,47 @@ Against the references:
   with sparse range beams were in unstructured rooms with a lidar-like fan of 10
   beams. This rover has three sonar beams. Here the RL PWM policy beats the
   tuned classical controller on every setting (large worlds: 75% vs 68%).
+
+## 5. Round 2: the most-starred GitHub projects with the same objective (2026-11-22)
+
+I searched GitHub for RL navigation of a ground robot to a goal through
+obstacles, and kept the projects with the most stars.
+
+| Project | Stars | What it does | How it trains and tests |
+|---|---|---|---|
+| [ros-navigation/navigation2](https://github.com/ros-navigation/navigation2) | 5091 | the ROS 2 navigation stack (classical) | the reference for costmaps, planners, recoveries (section 1) |
+| [reiniscimurs/DRL-robot-navigation](https://github.com/reiniscimurs/DRL-robot-navigation) (+ ROS2 and IR-SIM versions, 254 and 377) | 1380 | TD3/SAC from laser readings and a polar goal to velocity commands, Gazebo | random goal and obstacle boxes moved to new places every episode |
+| [vita-epfl/CrowdNav](https://github.com/vita-epfl/CrowdNav) | 742 | RL navigation among moving people | 500 test cases, success / collision / time |
+| [tomasvr/turtlebot3_drlnav](https://github.com/tomasvr/turtlebot3_drlnav) | 362 | DQN/DDPG/TD3 on a TurtleBot3, ROS 2, real-robot deployment | 10 stages of rising difficulty, moving obstacles from stage 4, frame stacking for motion |
+| [Arena-Rosnav/rosnav-rl](https://github.com/Arena-Rosnav/rosnav-rl) | 109 | modular ROS 2 DRL framework | benchmark worlds, dynamic obstacles, hyper-parameter search |
+
+### What they have that this project lacked, and what was done
+
+| # | Gap | Where they have it | Done here | Measured |
+|---|---|---|---|---|
+| H1 | **Cluttered obstacle courses**, re-randomised every episode | Cimurs (boxes moved each episode), drlnav stages | new `clutter` world: an open floor with 0.8-1.6 obstacles per m² of mixed shapes (boxes, thin walls at any angle, L-shapes, round pillars), every gap >= 0.35 m, checked by a test. Warehouses and rooms get 4-14 loose boxes (was 0-8). Default worlds are now maze, warehouse, rooms and clutter; `LEGACY_WORLDS` keeps the old mix for comparisons | current models in clutter worlds: A* + SAC 85%, pure pursuit 83% (60 missions) |
+| H2 | **Moving obstacles** (people, carts) | CrowdNav, drlnav stages 4+, Arena | `Mover`: walks back and forth on a free line at 0.15-0.4 m/s and pauses while the rover is close, as people do. Sonars see it and contacts count. Shown in RViz and Gazebo (`MOVERS=4 scripts/sim3d.sh`). `--worlds dynamic` in the evaluation | see the dynamic table in RESULTS.md |
+| H3 | Results split by difficulty | drlnav stages, Arena benchmark | `--worlds legacy|dense|clutter|dynamic` and a success-by-world column in every table | - |
+| H4 | (Found by the new tests) **the stop radius was too wide for a drifting estimate**. The top projects do not have this problem, because their simulators give the robot its exact pose | - | Every clutter failure was "arrived (estimate only)": the rover stopped when its *estimate* was within 12 cm, but the estimate was 7-41 cm off. The rover now stops at 6 cm. A controller that would circle the goal instead of settling still stops once it has not got 1 cm closer for 5 s within 12 cm | see the table below |
+
+Before and after the stop-radius change (same worlds and seeds as the first evaluation):
+
+| Setting | A* + SAC (default) | A* + pure pursuit |
+|---|---|---|
+| 4 m arena + overhead camera (60) | 93% -> 93% | 90% -> 92% |
+| 4 m arena, onboard sensors (60) | 90% -> 92% | 90% -> 90% |
+| 4-8 m worlds, onboard sensors (100) | 75% -> 81% | 68% -> 73% |
+| new clutter worlds (60) | 85% -> 95% | 83% -> 92% |
+
+No setting got worse. Two attempts were rejected on the way:
+
+- A stop radius of 6 cm alone cost pure pursuit two arena missions: it circled the goal until timeout. The 5 s settle rule fixed this.
+- A 1.5 s settle window gave back all of the gain, because SAC often turns in place near the goal.
+
+### Still open
+
+| Gap | Where they have it | Why not done yet |
+|---|---|---|
+| Memory of past readings in the PWM policy (frame stacking or an LSTM) | drlnav `ENABLE_STACKING`, IR-SIM RCPG | needs retraining the PWM policy; worth it if moving obstacles hurt (see the dynamic results) |
+| Training stages of rising difficulty (curriculum) | drlnav 10 stages | same retraining |
+| A lidar-like scan | all of them | the rover has 3 ultrasonics by design (team parts list) |

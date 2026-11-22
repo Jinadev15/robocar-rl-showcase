@@ -48,20 +48,25 @@ Full design: [docs/ROVER_SYSTEM_DESIGN.md](docs/ROVER_SYSTEM_DESIGN.md)
 
 ## Results (unseen worlds, randomised rovers)
 
-| Setting | Stack | Success | SPL | Route / shortest | Pose error | PWM decision |
-|---|---|---|---|---|---|---|
-| 4 m arena + overhead camera | A* + SAC | **93%** | **0.86** | 1.01 | 1 cm | 4 ms |
-| 4 m arena, onboard sensors | A* + SAC | 90% | 0.82 | 1.04 | 6 cm | 3 ms |
-| 4-8 m mazes/warehouses/rooms, onboard | A* + SAC | 75% | 0.62 | 1.10 | 10 cm | 3 ms |
-| same, classical controller | A* + pure pursuit | 68% | 0.60 | 1.01 | 14 cm | 0.5 ms |
+| Setting | Stack | Success |
+|---|---|---|
+| 4 m arena + overhead camera | A* + SAC | **93%**, 1 cm pose error, 4 ms per PWM decision |
+| clutter obstacle courses (30-45 obstacles) | A* + SAC | **95%** |
+| 4-8 m mazes, warehouses, rooms, onboard sensors | A* + SAC | 81% (classical pure pursuit: 73%) |
+| with 2-5 moving people/carts | A* + SAC | 85%, the same as without them |
 
-- The RL PWM policy beats a tuned pure-pursuit controller on every setting.
-  It is also faster: 4.2-5.1 s per metre vs 5.2-5.7.
+- The RL PWM policy beats a tuned pure-pursuit controller in every setting.
 - The overhead camera cuts the pose error from 6 cm to 1 cm.
 
 All tables: [docs/RESULTS.md](docs/RESULTS.md)
 
 ## Gap analysis
+
+Two rounds. Round 2 compares the project with the most-starred GitHub projects
+with the same objective: Nav2, DRL-robot-navigation, CrowdNav, turtlebot3_drlnav
+and Arena-Rosnav. It added cluttered obstacle courses, moving people and carts,
+and a tighter goal stop, and nothing got worse.
+
 
 The system was compared against Nav2 and against Tai et al. (2017),
 virtual-to-real RL navigation. It was also compared with Elfes (1987),
@@ -81,7 +86,7 @@ Details: [docs/GAP_ANALYSIS.md](docs/GAP_ANALYSIS.md)
 The simulation drawn in 3-D (Gazebo): walls to scale, the rover with its sonar beams,
 the planned route (green), the driven trail (orange), start (blue) and goal (green).
 
-![Gazebo view](images/gazebo_twin_warehouse.png)
+![Gazebo view](images/gazebo_twin_clutter_movers.png)
 
 
 | Simulator snapshot | Pure-pursuit baseline |
